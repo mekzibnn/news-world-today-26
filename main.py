@@ -207,7 +207,7 @@ REGIONS = [
 ]
 
 TIMELINE = [
-    ["Wed ET · Macy's parade to Sat",
+    ["Wed ET · Macy's to Sat",
      "00:45 · UCL early finals",
      "03:00 · UCL main finals",
      "08:00 · BOK hikes to 3.25%"],
