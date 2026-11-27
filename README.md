@@ -6,7 +6,7 @@
 
 **THE DAY IN FOUR ACTS** — Thursday 26 November 2026 told chronologically:
 OVERNIGHT (00–06 UTC) · MORNING (06–12 UTC) · AFTERNOON (12–18 UTC) ·
-EVENING (18–24 UTC). 37 stories, 7 regions, every story dated, sourced
+EVENING (18–24 UTC). 37 stories, 8 regions, every story dated, sourced
 and status-tagged. Drawn in code with PIL; no photographs.
 
 ## Stories

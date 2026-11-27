@@ -4,7 +4,7 @@
 A chronological one-day newspaper: Thursday 26 November 2026 told as four
 acts of the day (OVERNIGHT / MORNING / AFTERNOON / EVENING), each act a
 strictly gridded band with a time rail on the left and story cards aligned
-on a common baseline. 37 stories, 7 regions, every story dated, sourced
+on a common baseline. 37 stories, 8 regions, every story dated, sourced
 and status-tagged. Drawn in code with PIL; no photographs.
 
 Layout (1024x1024):
@@ -41,7 +41,8 @@ LIGHT_LINE = (196, 188, 172)
 # Region colours (one per region; used in region bar, kickers, list ticks).
 REGION_COLORS = {
     "Europe": (46, 74, 122),
-    "Asia-Pacific": (31, 122, 107),
+    "East Asia": (31, 122, 107),
+    "SE Asia": (0, 120, 135),
     "Americas": (155, 61, 61),
     "Africa": (166, 124, 0),
     "Middle East": (107, 78, 142),
@@ -50,7 +51,8 @@ REGION_COLORS = {
 }
 REGION_SHORT = {
     "Europe": "EUROPE",
-    "Asia-Pacific": "ASIA-PACIFIC",
+    "East Asia": "EAST ASIA",
+    "SE Asia": "SE ASIA",
     "Americas": "AMERICAS",
     "Africa": "AFRICA",
     "Middle East": "MIDDLE EAST",
@@ -181,8 +183,8 @@ PICTORIALS = [
          headline="Macy's 100th parade put off to Saturday",
          summary="First weather postponement in 100 years; nor'easter winds to 65 mph ground the balloons.",
          source="AP \u00b7 Reuters", status="REPORTED", pic="macys"),
-    dict(num=2, big=False, act=1, region="Asia-Pacific", city="SEOUL",
-         kicker="ASIA-PACIFIC \u00b7 SEOUL",
+    dict(num=2, big=False, act=1, region="East Asia", city="SEOUL",
+         kicker="EAST ASIA \u00b7 SEOUL",
          headline="Bank of Korea hikes rate to 3.25%",
          summary="Third hike since July; growth outlook raised to 4.1% for 2027.",
          source="Reuters", status="REPORTED", pic="bok"),
@@ -202,8 +204,8 @@ PICTORIALS = [
          headline="UK-EU bill goes to Parliament",
          summary="\u201cEuropean Partnership Bill\u201d read first time; second reading 7 Dec.",
          source="Parliament \u00b7 gov.uk", status="REPORTED", pic="ukbill"),
-    dict(num=6, big=False, act=2, region="Asia-Pacific", city="BEIJING",
-         kicker="ASIA-PACIFIC \u00b7 BEIJING",
+    dict(num=6, big=False, act=2, region="East Asia", city="BEIJING",
+         kicker="EAST ASIA \u00b7 BEIJING",
          headline="China firmly opposes US tariff plan",
          summary="MOFCOM \u201creserves the right\u201d to act; no specific retaliation announced.",
          source="Xinhua \u00b7 Reuters", status="REPORTED", pic="china"),
@@ -212,8 +214,8 @@ PICTORIALS = [
          headline="Kenya court halts US-backed Ebola site",
          summary="High Court rules the quarantine facility breached the constitution.",
          source="Reuters", status="REPORTED", pic="kenya"),
-    dict(num=8, big=False, act=2, region="Asia-Pacific", city="TOKYO",
-         kicker="ASIA-PACIFIC \u00b7 TOKYO",
+    dict(num=8, big=False, act=2, region="East Asia", city="TOKYO",
+         kicker="EAST ASIA \u00b7 TOKYO",
          headline="Asia stocks rebound after Wall St comeback",
          summary="Nikkei +0.86%, Taiex +2.50%, Kospi +0.29%; Hang Seng +1.19%.",
          source="Reuters \u00b7 AP", status="REPORTED", pic="markets"),
@@ -254,13 +256,13 @@ BRIEFS = [
          headline="Fed Dec hike now 97% likely", source="CME", status="REPORTED"),
     dict(num=16, region="World", city="London",
          headline="Gold COMEX close $3,593", source="COMEX", status="REPORTED"),
-    dict(num=17, region="Asia-Pacific", city="Seoul",
+    dict(num=17, region="East Asia", city="Seoul",
          headline="Kospi rebounds after 10-month low", source="WSJ", status="REPORTED"),
     dict(num=18, region="Americas", city="New York",
          headline="Thanksgiving travel busiest in 16 yrs", source="FAA", status="REPORTED"),
     dict(num=19, region="Americas", city="San Francisco",
          headline="King tide nears record 8.0 ft", source="NWS", status="FORECAST"),
-    dict(num=20, region="Asia-Pacific", city="West Java",
+    dict(num=20, region="SE Asia", city="West Java",
          headline="Mine disaster kills 13, traps 13", source="Reuters", status="REPORTED"),
     dict(num=21, region="Europe", city="Frankfurt",
          headline="ECB's new team: de Cos et al.", source="Consilium", status="FORECAST"),
@@ -268,7 +270,7 @@ BRIEFS = [
          headline="Spain votes Sunday; PP leads polls", source="Reuters", status="FORECAST"),
     dict(num=23, region="Middle East", city="Doha",
          headline="GP weekend: Derulo plays Sunday", source="F1.com", status="FORECAST"),
-    dict(num=24, region="Asia-Pacific", city="Hanoi",
+    dict(num=24, region="SE Asia", city="Hanoi",
          headline="CPTPP, ASEAN ministers meet", source="Reuters", status="REPORTED"),
     dict(num=25, region="Europe", city="Kyiv",
          headline="Overnight: 112 drones, 88 shot down", source="Reuters", status="REPORTED"),
@@ -276,7 +278,7 @@ BRIEFS = [
          headline="City braces as Houthis close in", source="Reuters", status="REPORTED"),
     dict(num=27, region="Europe", city="Europe",
          headline="UCL: PSG 2\u20132 Roma; Bayern beaten", source="UEFA", status="REPORTED"),
-    dict(num=28, region="Asia-Pacific", city="Asia",
+    dict(num=28, region="East Asia", city="Asia",
          headline="Markets close higher: Taiex +2.50%", source="Reuters", status="REPORTED"),
     dict(num=29, region="Africa", city="Cairo",
          headline="Egypt detains driver after blast", source="Reuters", status="REPORTED"),
@@ -288,9 +290,9 @@ BRIEFS = [
          headline="Could al-Shabab take over?", source="BBC", status="REPORTED"),
     dict(num=33, region="Oceania", city="Wellington",
          headline="Fibre-optic maps Alpine Fault", source="Conversation", status="REPORTED"),
-    dict(num=34, region="Asia-Pacific", city="Pyongyang",
+    dict(num=34, region="East Asia", city="Pyongyang",
          headline="Kim: deploy tactical nukes", source="KCNA", status="REPORTED"),
-    dict(num=35, region="Asia-Pacific", city="Hong Kong",
+    dict(num=35, region="East Asia", city="Hong Kong",
          headline="1 year since Wang Fuk Court fire", source="AP", status="REPORTED"),
     dict(num=36, region="Europe", city="Madrid",
          headline="Final polls: PP 31.5%, PSOE 29%, Vox ~18%", source="Reuters", status="FORECAST"),
@@ -299,8 +301,10 @@ BRIEFS = [
 ]
 
 # Region counts (must sum to 37). NOTE: the research file says "9 regions"
-# but lists 7 named regions; the image honestly shows 7.
-REGION_COUNTS = {"Europe": 10, "Asia-Pacific": 9, "Americas": 5,
+# but lists 7 named regions. Asia-Pacific is split honestly into East Asia
+# (7) and SE Asia (2) from the story cities — 8 regions, no invention
+# (South Asia and Latin America have 0 Thursday stories).
+REGION_COUNTS = {"Europe": 10, "East Asia": 7, "SE Asia": 2, "Americas": 5,
                  "Africa": 5, "Middle East": 4, "Oceania": 2, "World": 2}
 
 # Stat strip: (big number, caption).
@@ -651,7 +655,7 @@ SRC_H = 11
 def _draw_masthead(d):
     d.rectangle([0, 0, W, MAST_H], fill=NAVY)
     d.text((M, 7), "THE WORLD IN ONE DAY", font=playfair(16, 700), fill=WHITE)
-    right = "37 STORIES \u00b7 7 REGIONS \u00b7 ALL FROM THURSDAY 26 NOVEMBER 2026"
+    right = "37 STORIES \u00b7 8 REGIONS \u00b7 ALL FROM THURSDAY 26 NOVEMBER 2026"
     f = sans(11, bold=True)
     d.text((W - M - text_w(d, right, f), 9), right, font=f, fill=WHITE)
 
@@ -690,13 +694,13 @@ def _draw_region_bar(d, y):
     # Proportional widths, minimum 80px so labels fit.
     raw = {r: CW * c / total for r, c in REGION_COUNTS.items()}
     widths = {}
-    order = ["Europe", "Asia-Pacific", "Americas", "Africa",
+    order = ["Europe", "East Asia", "SE Asia", "Americas", "Africa",
              "Middle East", "Oceania", "World"]
     for r in order:
         widths[r] = max(80, raw[r])
     over = sum(widths.values()) - CW
     # take the excess from the two widest segments
-    for r in ("Europe", "Asia-Pacific"):
+    for r in ("Europe", "East Asia"):
         widths[r] -= over / 2
     x = M
     f = sans(11, bold=True)
@@ -785,7 +789,7 @@ def _draw_act(d, act, y0):
     d.text((48, y0 + 50), act["label"], font=sans(10, bold=True), fill=INK)
     f_note = serif(10)
     draw_wrapped(d, 48, y0 + 66, act["note"], f_note, RAIL_X1 - 48 - 4,
-                 3, GREY, leading=12)
+                 4, GREY, leading=12)
     # cards
     stories = [s for s in PICTORIALS if s["act"] == act["n"]]
     n = len(stories)

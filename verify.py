@@ -133,6 +133,22 @@ else:
     for n in ("e", "e2", "e3", "e4"):
         check(n, False, "no image")
 
+# ---------------------------------------------------------------- (n) rail notes
+# Every act note must fit its 4-line rail slot (the Act 4 note once lost
+# its last word to a 3-line cap: "closes." never rendered).
+if im is not None:
+    from PIL import ImageDraw as _ImageDraw
+    _dd = _ImageDraw.Draw(im)
+    note_over = []
+    for a in M.ACTS:
+        lines = M.wrap_text(_dd, a["note"], M.serif(10), M.RAIL_X1 - 48 - 4)
+        if len(lines) > 4:
+            note_over.append((a["n"], len(lines)))
+    check("n", not note_over,
+          "rail notes over 4 lines: %s" % (note_over,))
+else:
+    check("n", False, "no image")
+
 # ---------------------------------------------------------------- (f) sections
 check("f", len(M.DATE_CHECK) == 12,
       "DATE CHECK items %d" % len(M.DATE_CHECK))
