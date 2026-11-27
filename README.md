@@ -1,33 +1,46 @@
-# The World in One Day — 26 November 2026
+# news-world-today-26
 
 [![news-image-20261126](https://make.fun/badge/news-image-20261126.svg)](https://make.fun/bounty/news-image-20261126)
 [![rank](https://make.fun/badge/news-image-20261126/mekzibnn/news-world-today-26/rank.svg)](https://make.fun/bounty/news-image-20261126)
 [![reward](https://make.fun/badge/news-image-20261126/mekzibnn/news-world-today-26/reward.svg)](https://make.fun/bounty/news-image-20261126)
 
-A program that sums up the world's news of **Thursday 26 November 2026** in a
-single image (`entry.png`, 1024×1024): 28 dated stories from 7 regions —
-Macy's 100th parade postponed to Saturday, the EU budget summit opening in
-Brussels, twin storms slamming Thanksgiving on both US coasts, the Bank of
-Korea hiking to 3.25%, and more — plus a 41-item DATE CHECK of what is *not*
-Thursday's news.
+**THE WORLD IN ONE DAY — Thursday 26 November 2026.**
 
-## Run
+One image that sums up Thursday 26 November 2026: **37 stories, 9 regions**.
+Every story happened, or was first reported, on Thursday 26 November 2026.
+Sources are named on each story. Scenes are drawn illustrations, not
+photographs.
+
+## What is in the image
+
+- 3 big lead stories with flat vector pictorials (Macy's 100th parade
+  postponed to Saturday, EU summit ends early with no budget deal, twin
+  storms slam Thanksgiving on both coasts).
+- 10 medium stories with pictorials (UK-EU bill, Asia markets rebound,
+  UCL, ECB top team, China tariffs, Kyiv, Yemen, Bank of Korea, Kenya
+  court, Australia–Fiji alliance).
+- A world map with numbered pins (1–13) and a numbered list of stories
+  14–37, a UTC timeline, a 6-number stat strip, and a DATE CHECK box
+  naming stories that are NOT 26 November.
+
+## How it is built
+
+`main.py` renders `entry.png` (1024×1024) with PIL only — flat vector
+pictorials, Playfair Display Bold for the title and lead headlines
+(bundled in `fonts/`), DejaVu Serif for body text. No network access, no
+external assets.
+
+Run it:
 
 ```sh
-python3 main.py
+python3 main.py          # writes entry.png (and /output/entry.png)
+python3 verify.py        # checks the image + data (exit 0 = all pass)
 ```
 
-Writes `entry.png` to `$MAKEFUN_OUTPUT_DIR` (then `$ENTRY_OUTPUT`, then
-`/output/entry.png`). If rendering fails it falls back to the committed
-`entry.png` and still exits 0.
+`main.py` honours `$MAKEFUN_OUTPUT_DIR`, then `$ENTRY_OUTPUT`, then
+`/output/entry.png`. If rendering fails for any reason it falls back to
+copying the committed `entry.png` and exits 0.
 
-## Verify
+## License
 
-```sh
-python3 verify.py
-```
-
-Checks image size, title margins, headline/brief completeness, font sizes,
-timeline times, region counts, DATE CHECK count, pictorial shading, README
-badges, and the fact traps (parade postponed, Barreto on Saturday, Wednesday
-numbers never presented as Thursday closes).
+MIT — see `LICENSE`.

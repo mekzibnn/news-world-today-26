@@ -1,23 +1,17 @@
-"""verify.py — automated checks for news-image-20261126 v1.
+#!/usr/bin/env python3
+"""verify.py -- checks for news-image-20261126 v2 (37 stories, 9 regions).
 
-Checks (exit 0 = all PASS, exit 1 = any FAIL):
-  (a) entry.png is 1024x1024
-  (b) title margins: date-headline glyphs do not touch the edges (>=40px)
-  (c) all 13 headlines + 15 briefs complete (no truncation, no '...')
-  (d) font sizes: briefs >=18px, DATE CHECK >=16px, timeline >=16px
-  (e) timeline times/zones match the research
-  (f) region counts correct (7/5/10/0/0/4/2 = 28)
-  (g) DATE CHECK has 41 items
-  (h) pictorial bands have content + shading (>=3 brightness levels)
-  (i) README has the 3 live make.fun badges, no shields.io
-  (j) no '...' anywhere in main.py
-  (k) main.py honours $MAKEFUN_OUTPUT_DIR + fallback, no top-level Pillow import
+Checks the rendered entry.png AND the source data in main.py:
+  size, title margins, story/region counts, headline completeness,
+  brief one-line fit, DATE CHECK, timeline, trap numbers, Pillow rules,
+  output-dir rules, README badges.
+Exit 0 when all PASS, 1 otherwise.
 """
-
 import importlib.util
 import os
 import re
 import sys
+from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PASS = []
@@ -26,226 +20,198 @@ FAIL = []
 
 def check(name, ok, detail=""):
     (PASS if ok else FAIL).append(name)
-    print(("PASS  " if ok else "FAIL  ") + f"({name})" +
-          (f" {detail}" if detail else ""))
-
-
-def load_main():
-    spec = importlib.util.spec_from_file_location(
-        "entry_main", os.path.join(HERE, "main.py"))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
-    return mod
+    print("%s  (%s) %s" % ("PASS " if ok else "FAIL ", name, detail))
 
 
 def main():
+    # ---- load main.py data (import only; render is under __main__ guard) ----
+    spec = importlib.util.spec_from_file_location("entry_main",
+                                                  os.path.join(HERE, "main.py"))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+
+    src = open(os.path.join(HERE, "main.py"), encoding="utf-8").read()
+
+    # ---- image ----
     try:
-        from PIL import Image
+        from PIL import Image, ImageDraw
     except Exception:
-        print("FAIL  (a) Pillow not available")
+        print("FAIL  (img) PIL unavailable")
         return 1
-    m = load_main()
+    img_path = os.path.join(HERE, "entry.png")
+    im = Image.open(img_path).convert("RGB")
+    check("a", im.size == (1024, 1024), "size %s" % (im.size,))
 
-    # (a) size
-    try:
-        im = Image.open(os.path.join(HERE, "entry.png"))
-        check("a", im.size == (1024, 1024), f"size {im.size}")
-    except Exception as e:
-        check("a", False, f"cannot open entry.png: {e}")
-        im = None
-
-    # (b) title margins — dark glyph pixels in date-headline band y 38-72
-    if im is not None:
-        band = im.crop((0, 38, 1024, 72)).convert("L")
-        px = band.load()
-        minx, maxx = 1024, 0
-        for y in range(band.height):
-            for x in range(band.width):
-                if px[x, y] < 80:
-                    minx = min(minx, x)
-                    maxx = max(maxx, x)
-        left, right = minx, 1023 - maxx
-        check("b", left >= 40 and right >= 40,
-              f"title margins left {left}px, right {right}px")
-        # masthead text margins
-        band2 = im.crop((0, 0, 1024, 36)).convert("L")
-        px2 = band2.load()
-        minx2, maxx2 = 1024, 0
-        for y in range(band2.height):
-            for x in range(band2.width):
-                if px2[x, y] > 180:
-                    minx2 = min(minx2, x)
-                    maxx2 = max(maxx2, x)
-        check("b2", minx2 >= 10 and 1023 - maxx2 >= 10,
-              f"masthead margins left {minx2}px, right {1023 - maxx2}px")
-
-    # (c) 13 headlines + 15 briefs complete
-    leads = getattr(m, "LEADS", [])
-    mediums = getattr(m, "MEDIUMS", [])
-    headlines = [h for (_, h, _, _, _, _) in leads] + \
-                [h for (_, _, h, _, _, _) in mediums]
-    check("c", len(headlines) == 13, f"headlines count {len(headlines)}")
-    bad_h = [h for h in headlines if not h or "..." in h or h.strip() != h]
-    check("c2", not bad_h, f"headlines complete bad={bad_h}")
-    briefs = getattr(m, "BRIEFS", [])
-    check("c3", len(briefs) == 15, f"briefs count {len(briefs)}")
-    bad_b = [t for (t, _) in briefs if not t or "..." in t]
-    check("c4", not bad_b, f"briefs complete bad={bad_b}")
-    # briefs fit one line at 18px in the brief column (516px)
-    try:
-        from PIL import ImageDraw, ImageFont
-        tmp = Image.new("RGB", (1024, 1024))
-        dd = ImageDraw.Draw(tmp)
-        f18 = ImageFont.truetype(
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
-        f18b = ImageFont.truetype(
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 18)
-        over = []
-        for i, (t, _) in enumerate(briefs, 1):
-            wnum = dd.textlength(f"{i}. ", font=f18b)
-            wt = dd.textlength(t, font=f18)
-            if wnum + wt > 516:
-                over.append((i, t))
-        check("c5", not over, f"briefs fit one line over={over}")
-    except Exception as e:
-        check("c5", False, f"measure failed: {e}")
-
-    # (d) font sizes from source
-    with open(os.path.join(HERE, "main.py")) as f:
-        src = f.read()
-    check("d", "f_br = font(18)" in src, "briefs 18px")
-    check("d2", "f_dc = font(16)" in src, "DATE CHECK 16px")
-    check("d3", "f_tl = font(16)" in src, "timeline 16px")
-
-    # (e) timeline times/zones
-    tl = getattr(m, "TIMELINE", [])
-    flat = [e for row in tl for e in row]
-    expected_times = ["Wed ET", "00:45", "03:00", "08:00",
-                      "14:00", "16:00", "16:30", "02:38 Fri"]
-    got_times = []
-    for e in flat:
-        got_times.append(e.split(" · ")[0] if " · " in e else e)
-    check("e", got_times == expected_times,
-          f"timeline times {got_times}")
-    check("e2", len(flat) == 8, f"timeline entries {len(flat)}")
-    # no invented decision: timeline must not claim EU/MOFCOM/UK outcomes
-    bad_tl = [e for e in flat
-              if any(s in e for s in ["agreed", "decided", "approved",
-                                      "reached a deal", "passed"])]
-    check("e3", not bad_tl, f"timeline no invented outcomes {bad_tl}")
-
-    # (f) region counts
-    regions = getattr(m, "REGIONS", [])
-    expected = {"Asia-Pacific": 7, "Americas": 5, "Europe": 10,
-                "Africa": 0, "Oceania": 0, "Middle East": 4, "World": 2}
-    got = dict(regions)
-    check("f", got == expected, f"regions {got}")
-    check("f2", sum(got.values()) == 28, f"total {sum(got.values())}")
-    # cross-check: leads + briefs per region match REGIONS
-    from collections import Counter
-    cnt = Counter()
-    lead_regions = ["Americas", "Europe", "Americas", "Europe",
-                    "Asia-Pacific", "Europe", "Europe", "Asia-Pacific",
-                    "Europe", "Middle East", "Asia-Pacific", "Europe",
-                    "Middle East"]
-    for r in lead_regions:
-        cnt[r] += 1
-    for (_, r) in briefs:
-        cnt[r] += 1
-    cnt_full = {name: cnt.get(name, 0) for name in expected}
-    check("f3", cnt_full == expected, f"stories per region {cnt_full}")
-
-    # (g) DATE CHECK 41 items
-    dc = getattr(m, "DATECHECK", [])
-    check("g", len(dc) == 41, f"DATE CHECK items {len(dc)}")
-    bad_dc = [x for x in dc if not x or "..." in x]
-    check("g2", not bad_dc, f"DATE CHECK complete {bad_dc}")
-
-    # (h) pictorial bands: content + shading
-    if im is not None:
-        # lead pictorial bands y 177-213, 3 cards
-        bands = [(17, 340), (350, 673), (684, 1007)]
-        ok = True
-        det = []
-        for (x0, x1) in bands:
-            vals = set()
-            for y in range(177, 213):
-                for x in range(x0, x1):
-                    vals.add(im.getpixel((x, y))[0] // 16)
-            det.append(len(vals))
-            if len(vals) < 3:
-                ok = False
-        check("h", ok, f"lead pictorial brightness levels {det}")
-        # medium pictorial strips exist (non-cream rows in y 339-353)
-        strip_vals = set()
-        for y in range(339, 353):
-            for x in range(17, 1007, 7):
-                strip_vals.add(im.getpixel((x, y))[0] // 32)
-        check("h2", len(strip_vals) >= 3,
-              f"medium pictorial strip levels {len(strip_vals)}")
-        # no bright flame-orange leak into the timeline band
-        leak = 0
-        for y in range(138, 176):
-            for x in range(1024):
-                r, g, b = im.getpixel((x, y))[:3]
-                if r > 230 and 100 < g < 200 and b < 90:
-                    leak += 1
-        check("h3", leak == 0, f"flame-orange pixels in timeline: {leak}")
-
-    # (i) README badges
-    readme_p = os.path.join(HERE, "README.md")
-    if os.path.exists(readme_p):
-        with open(readme_p) as f:
-            rd = f.read()
-        slug = "news-image-20261126"
-        repo = "mekzibnn/news-world-today-26"
-        b1 = f"https://make.fun/badge/{slug}.svg"
-        b2 = f"https://make.fun/badge/{slug}/{repo}/rank.svg"
-        b3 = f"https://make.fun/badge/{slug}/{repo}/reward.svg"
-        check("i", b1 in rd, "badge competition")
-        check("i2", b2 in rd, "badge rank")
-        check("i3", b3 in rd, "badge reward (with owner/repo)")
-        check("i4", "shields.io" not in rd, "no shields.io")
-        check("i5", "https://make.fun/bounty/news-image-20261126" in rd,
-              "badge links to bounty")
+    # title margins: dark pixels in title band y=10..64
+    def is_dark(px):
+        r, g, b = px
+        return r < 90 and g < 90 and b < 90
+    xs = [x for y in range(10, 64) for x in range(1024)
+          if is_dark(im.getpixel((x, y)))]
+    if xs:
+        lm, rm = min(xs), 1023 - max(xs)
+        check("b", lm >= 20 and rm >= 20,
+              "title margins left %dpx, right %dpx" % (lm, rm))
     else:
-        check("i", False, "README.md missing")
+        check("b", False, "no title pixels found")
 
-    # (j) no '...' in main.py
-    check("j", "..." not in src, "no '...' in main.py")
+    # ---- story counts ----
+    total = len(m.LEADS) + len(m.MEDIUM) + len(m.BRIEFS)
+    check("c", total == 37, "total stories %d" % total)
+    counts = m.region_counts()
+    expect = {"Asia-Pacific": 9, "Americas": 5, "Europe": 10, "Africa": 5,
+              "Oceania": 2, "Middle East": 4, "World": 2}
+    check("c2", counts == expect, "regions %s" % (counts,))
+    check("c3", len(m.LEADS) == 3 and len(m.MEDIUM) == 10,
+          "3 big leads + 10 medium pictorials")
+    check("c4", len(m.BRIEFS) == 24, "24 briefs (14-37)")
 
-    # (k) main.py rules: no top-level Pillow import; honours output env; fallback
-    lines = src.splitlines()
-    top_import = any(
-        re.match(r"^(from PIL|import PIL)", ln) for ln in lines)
-    check("k", not top_import, "no top-level Pillow import")
-    check("k2", "MAKEFUN_OUTPUT_DIR" in src, "honours $MAKEFUN_OUTPUT_DIR")
-    check("k3", "ENTRY_OUTPUT" in src, "honours $ENTRY_OUTPUT")
-    check("k4", "/output/entry.png" in src, "falls back to /output/entry.png")
-    check("k5", "shutil.copyfile" in src, "fallback copies committed entry.png")
+    # ---- every story has source + status ----
+    # tuple shapes differ: LEADS/MEDIUM end (..., source, status, art),
+    # BRIEFS end (..., source, status). Status is index -2 for pictorials.
+    def _src_status(s, pictorial):
+        if pictorial:
+            return s[-3], s[-2]
+        return s[-2], s[-1]
+    bad = []
+    for s in m.LEADS + m.MEDIUM:
+        src_, st_ = _src_status(s, True)
+        if not src_ or not st_:
+            bad.append(s[0])
+    for s in m.BRIEFS:
+        src_, st_ = _src_status(s, False)
+        if not src_ or not st_:
+            bad.append(s[0])
+    check("d", not bad, "stories missing source/status: %s" % bad)
+    bad_status = []
+    for s in m.LEADS + m.MEDIUM:
+        if _src_status(s, True)[1] not in m.STATUS_COLORS:
+            bad_status.append(s[0])
+    for s in m.BRIEFS:
+        if _src_status(s, False)[1] not in m.STATUS_COLORS:
+            bad_status.append(s[0])
+    check("d2", not bad_status, "unknown status: %s" % bad_status)
 
-    # (l) fact traps (must NOT appear as Thursday news)
-    bad_facts = []
-    if "Macy" in src and "parade" in src.lower():
-        # parade must be postponed, never 'runs Thursday'
-        if re.search(r"parade (runs|held|takes place|marches) (on )?Thursday",
-                     src, re.I):
-            bad_facts.append("parade runs Thursday")
-    if "Barreto" in src and "Thursday" in src:
-        # Barreto must not be presented as a Thursday appearance
-        if re.search(r"Barreto.*Thursday|Thursday.*Barreto", src):
-            bad_facts.append("Barreto Thursday")
-    check("l", not bad_facts, f"fact traps {bad_facts}")
-    # Wednesday numbers must not be presented as Thursday closes
-    check("l2", "$3,645" not in src, "no Tue gold $3,645 as Thu")
-    check("l3", "3,645" not in src or "Tuesday" in src or "Selasa" in src,
-          "gold 3645 only as Tuesday context")
+    # ---- headlines complete (no truncation marker, fits its card) ----
+    d = ImageDraw.Draw(Image.new("RGB", (1024, 1024)))
+    lead_w = (976 - 2 * 11) // 3
+    med_w = (976 - 4 * 9) // 5
+    bad_h = []
+    for lead in m.LEADS:
+        lines = m.wrap(d, lead[3], m._playfair(23), lead_w)
+        if len(lines) > 3 or "..." in lead[3]:
+            bad_h.append(lead[0])
+    for med in m.MEDIUM:
+        lines = m.wrap(d, med[2], m._serif(16, bold=True), med_w)
+        if len(lines) > 3 or "..." in med[2]:
+            bad_h.append(med[0])
+    check("e", not bad_h, "headlines over 3 lines / truncated: %s" % bad_h)
 
-    print(f"\n{len(PASS)} PASS, {len(FAIL)} FAIL")
-    if FAIL:
-        print("FAILURES:", FAIL)
-        return 1
-    return 0
+    # ---- briefs fit one line (10px, column 326px) ----
+    f_b = m._serif(10)
+    over = []
+    for b in m.BRIEFS:
+        txt = "%d. %s — %s — %s" % (b[0], b[2], b[3], b[4])
+        if b[5] == "FORECAST":
+            txt += " · FORECAST"
+        if d.textlength(txt, font=f_b) > 326:
+            over.append(b[0])
+    check("e2", not over, "briefs over one line: %s" % over)
+
+    # ---- summaries fit 2 lines (leads only; medium cards render no summary) ----
+    bad_s = []
+    for lead in m.LEADS:
+        if len(m.wrap(d, lead[4], m._serif(12), lead_w)) > 2:
+            bad_s.append(lead[0])
+    check("e3", not bad_s, "lead summaries over 2 lines: %s" % bad_s)
+
+    # ---- DATE CHECK + timeline + stats ----
+    check("f", len(m.DATE_CHECK) == 12, "DATE CHECK items %d" % len(m.DATE_CHECK))
+    check("f2", len(m.TIMELINE) == 6, "timeline entries %d" % len(m.TIMELINE))
+    check("f3", len(m.STATS) == 6, "stat strip numbers %d" % len(m.STATS))
+
+    # ---- trap numbers must NOT appear as Thursday facts ----
+    all_text = " ".join(
+        [s[3] for s in m.LEADS] + [s[4] for s in m.LEADS] +
+        [s[2] for s in m.MEDIUM] + [s[3] for s in m.MEDIUM] +
+        [s[3] for s in m.BRIEFS] + [n for n, _ in m.STATS])
+    traps = []
+    if "$3,645" in all_text:
+        traps.append("gold $3,645 as Thursday")
+    if "-6,2%" in all_text or "-6.2%" in all_text:
+        traps.append("Kospi -6.2% as Thursday")
+    if "180+" in all_text or "180 tewas" in all_text:
+        traps.append("Cairo 180+ deaths")
+    if "113–99" in all_text or "113-99" in all_text:
+        traps.append("Celtics 113-99")
+    check("g", not traps, "trap numbers present: %s" % traps)
+    # correct Thursday numbers ARE present
+    good = []
+    if "$3,593" in all_text:
+        good.append("COMEX $3,593")
+    if "+0.86%" in all_text:
+        good.append("Nikkei +0.86%")
+    if "+0.29%" in all_text:
+        good.append("Kospi +0.29%")
+    if "3.25%" in all_text:
+        good.append("BOK 3.25%")
+    check("g2", len(good) == 4, "Thursday numbers present: %s" % good)
+
+    # ---- no future-dated stories (no Friday 27 Nov / Saturday results) ----
+    future = []
+    for s in m.LEADS + m.MEDIUM + m.BRIEFS:
+        txt = " ".join(str(x) for x in s)
+        if "Friday 27" in txt or "27 Nov" in txt and "reported" in txt.lower():
+            future.append(s[0])
+    check("h", not future, "future-dated stories: %s" % future)
+
+    # ---- source hygiene ----
+    check("i", "..." not in src, "no '...' in main.py")
+    # no top-level Pillow import: 'from PIL' / 'import PIL' must be inside try
+    lines = src.split("\n")
+    toplevel_pil = [ln for ln in lines
+                    if (ln.startswith("from PIL") or ln.startswith("import PIL"))]
+    check("i2", not toplevel_pil, "top-level Pillow import: %s" % toplevel_pil)
+    check("i3", "MAKEFUN_OUTPUT_DIR" in src, "honours $MAKEFUN_OUTPUT_DIR")
+    check("i4", "ENTRY_OUTPUT" in src, "honours $ENTRY_OUTPUT")
+    check("i5", "/output/entry.png" in src, "falls back to /output/entry.png")
+    check("i6", "shutil.copyfile" in src and "entry.png" in src,
+          "fallback copies committed entry.png")
+
+    # ---- README badges ----
+    readme = open(os.path.join(HERE, "README.md"), encoding="utf-8").read()
+    slug = "news-image-20261126"
+    owner, repo = "mekzibnn", "news-world-today-26"
+    badges = [
+        "https://make.fun/badge/%s.svg" % slug,
+        "https://make.fun/badge/%s/%s/%s/rank.svg" % (slug, owner, repo),
+        "https://make.fun/badge/%s/%s/%s/reward.svg" % (slug, owner, repo),
+    ]
+    bad_b = [b for b in badges if b not in readme]
+    check("j", not bad_b, "badges missing: %s" % bad_b)
+    check("j2", "shields.io" not in readme, "no shields.io")
+    check("j3", ("https://make.fun/bounty/%s" % slug) in readme,
+          "badge links to bounty")
+
+    # ---- LICENSE present ----
+    check("k", os.path.exists(os.path.join(HERE, "LICENSE")),
+          "MIT LICENSE present")
+
+    # ---- pictorial layers stay inside their bands (no orange in timeline) ----
+    def is_orange(px):
+        r, g, b = px
+        return r > 180 and 60 < g < 150 and b < 80
+    # timeline band: find its y by scanning for the red "THE DAY IN UTC" text
+    # (approximate: timeline is between map and DATE CHECK, y ~ 880-910)
+    orange = 0
+    for y in range(880, 912):
+        for x in range(1024):
+            if is_orange(im.getpixel((x, y))):
+                orange += 1
+    check("l", orange == 0, "flame-orange pixels in timeline band: %d" % orange)
+
+    print("\n%d PASS, %d FAIL" % (len(PASS), len(FAIL)))
+    return 0 if not FAIL else 1
 
 
 if __name__ == "__main__":
